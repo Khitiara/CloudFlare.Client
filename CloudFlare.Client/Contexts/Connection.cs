@@ -19,12 +19,13 @@ namespace CloudFlare.Client.Contexts
         private readonly JsonMediaTypeFormatter _formatter;
         private readonly JsonSerializerSettings _serializerSettings;
 
-        protected Connection(IAuthentication authentication, ConnectionInfo connectionInfo)
+        protected Connection(IAuthentication authentication, ConnectionInfo connectionInfo,
+            IHttpMessageHandlerFactory factory)
         {
             _serializerSettings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore };
             _formatter = new JsonMediaTypeFormatter { SerializerSettings = _serializerSettings };
 
-            HttpClient = CreateHttpClient(authentication, connectionInfo);
+            HttpClient = CreateHttpClient(authentication, connectionInfo, factory);
 
             IsDisposed = false;
         }
@@ -35,25 +36,29 @@ namespace CloudFlare.Client.Contexts
 
         protected bool IsDisposed { get; private set; }
 
-        public async Task<CloudFlareResult<TResult>> GetAsync<TResult>(string requestUri, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> GetAsync<TResult>(string requestUri,
+            CancellationToken cancellationToken)
         {
             var response = await HttpClient.GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
             return await response.GetCloudFlareResultAsync<TResult>().ConfigureAwait(false);
         }
 
-        public async Task<CloudFlareResult<TResult>> DeleteAsync<TResult>(string requestUri, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> DeleteAsync<TResult>(string requestUri,
+            CancellationToken cancellationToken)
         {
             var response = await HttpClient.DeleteAsync(requestUri, cancellationToken).ConfigureAwait(false);
             return await response.GetCloudFlareResultAsync<TResult>().ConfigureAwait(false);
         }
 
-        public async Task<CloudFlareResult<TResult>> DeleteAsync<TResult, TContent>(string requestUri, TContent content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> DeleteAsync<TResult, TContent>(string requestUri, TContent content,
+            CancellationToken cancellationToken)
         {
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Delete, requestUri)
                 {
-                    Content = new StringContent(JsonConvert.SerializeObject(content, _serializerSettings), Encoding.UTF8, HttpContentTypesHelper.Json)
+                    Content = new StringContent(JsonConvert.SerializeObject(content, _serializerSettings),
+                        Encoding.UTF8, HttpContentTypesHelper.Json)
                 };
 
                 var response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -65,19 +70,22 @@ namespace CloudFlare.Client.Contexts
             }
         }
 
-        public async Task<CloudFlareResult<TResult>> PatchAsync<TResult>(string requestUri, TResult content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> PatchAsync<TResult>(string requestUri, TResult content,
+            CancellationToken cancellationToken)
         {
             return await PatchAsync<TResult, TResult>(requestUri, content, cancellationToken);
         }
 
-        public async Task<CloudFlareResult<TResult>> PatchAsync<TResult, TContent>(string requestUri, TContent content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> PatchAsync<TResult, TContent>(string requestUri, TContent content,
+            CancellationToken cancellationToken)
         {
             try
             {
                 var method = new HttpMethod("PATCH");
                 var request = new HttpRequestMessage(method, requestUri)
                 {
-                    Content = new StringContent(JsonConvert.SerializeObject(content, _serializerSettings), Encoding.UTF8, HttpContentTypesHelper.Json)
+                    Content = new StringContent(JsonConvert.SerializeObject(content, _serializerSettings),
+                        Encoding.UTF8, HttpContentTypesHelper.Json)
                 };
 
                 var response = await HttpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
@@ -95,25 +103,31 @@ namespace CloudFlare.Client.Contexts
             GC.SuppressFinalize(this);
         }
 
-        public async Task<CloudFlareResult<TResult>> PostAsync<TResult>(string requestUri, TResult content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> PostAsync<TResult>(string requestUri, TResult content,
+            CancellationToken cancellationToken)
         {
             return await PostAsync<TResult, TResult>(requestUri, content, cancellationToken);
         }
 
-        public async Task<CloudFlareResult<TResult>> PostAsync<TResult, TContent>(string requestUri, TContent content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> PostAsync<TResult, TContent>(string requestUri, TContent content,
+            CancellationToken cancellationToken)
         {
-            var response = await HttpClient.PostAsync(requestUri, content, _formatter, cancellationToken).ConfigureAwait(false);
+            var response = await HttpClient.PostAsync(requestUri, content, _formatter, cancellationToken)
+                .ConfigureAwait(false);
             return await response.GetCloudFlareResultAsync<TResult>().ConfigureAwait(false);
         }
 
-        public async Task<CloudFlareResult<TResult>> PutAsync<TResult>(string requestUri, TResult content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> PutAsync<TResult>(string requestUri, TResult content,
+            CancellationToken cancellationToken)
         {
             return await PutAsync<TResult, TResult>(requestUri, content, cancellationToken);
         }
 
-        public async Task<CloudFlareResult<TResult>> PutAsync<TResult, TContent>(string requestUri, TContent content, CancellationToken cancellationToken)
+        public async Task<CloudFlareResult<TResult>> PutAsync<TResult, TContent>(string requestUri, TContent content,
+            CancellationToken cancellationToken)
         {
-            var response = await HttpClient.PutAsync(requestUri, content, _formatter, cancellationToken).ConfigureAwait(false);
+            var response = await HttpClient.PutAsync(requestUri, content, _formatter, cancellationToken)
+                .ConfigureAwait(false);
             return await response.GetCloudFlareResultAsync<TResult>().ConfigureAwait(false);
         }
 
@@ -133,12 +147,10 @@ namespace CloudFlare.Client.Contexts
             IsDisposed = true;
         }
 
-        private static HttpClient CreateHttpClient(IAuthentication authentication, ConnectionInfo connectionInfo)
+        private static HttpClient CreateHttpClient(IAuthentication authentication, ConnectionInfo connectionInfo,
+            IHttpMessageHandlerFactory factory)
         {
-            var client = new HttpClient(CreateHttpClientHandler(connectionInfo), true)
-            {
-                BaseAddress = connectionInfo.Address
-            };
+            var client = new HttpClient(factory.CreateHandler(), true) { BaseAddress = connectionInfo.Address, };
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(HttpContentTypesHelper.Json));
             client.DefaultRequestHeaders.ExpectContinue = connectionInfo.ExpectContinue;
 
@@ -150,19 +162,6 @@ namespace CloudFlare.Client.Contexts
             authentication.AddToHeaders(client);
 
             return client;
-        }
-
-        private static HttpMessageHandler CreateHttpClientHandler(ConnectionInfo connectionInfo)
-        {
-            try
-            {
-                return new HttpClientHandler { AllowAutoRedirect = connectionInfo.AllowAutoRedirect, UseProxy = connectionInfo.UseProxy, Proxy = connectionInfo.Proxy };
-            }
-            catch (PlatformNotSupportedException)
-            {
-                // UseProxy, Proxy is not supported on some platforms
-                return new HttpClientHandler { AllowAutoRedirect = connectionInfo.AllowAutoRedirect };
-            }
         }
     }
 }

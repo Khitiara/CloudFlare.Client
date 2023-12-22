@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using CloudFlare.Client.Api.Authentication;
 using CloudFlare.Client.Client.Accounts;
 using CloudFlare.Client.Client.Users;
@@ -16,37 +17,18 @@ namespace CloudFlare.Client
         /// Initializes a new instance of the <see cref="CloudFlareClient"/> class
         /// </summary>
         /// <param name="authentication">Authentication which can be ApiKey and Token based</param>
+        /// <param name="factory"></param>
         /// <param name="connectionInfo">Connection info</param>
-        public CloudFlareClient(IAuthentication authentication, ConnectionInfo connectionInfo = null)
+        public CloudFlareClient(IAuthentication authentication, IHttpMessageHandlerFactory factory,
+            ConnectionInfo connectionInfo = null)
         {
             IsDisposed = false;
 
-            _connection = new ApiConnection(authentication, connectionInfo ?? new ConnectionInfo());
+            _connection = new ApiConnection(authentication, connectionInfo ?? new ConnectionInfo(), factory);
 
             Accounts = new Accounts(_connection);
             Users = new Users(_connection);
             Zones = new Zones(_connection);
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CloudFlareClient"/> class
-        /// </summary>
-        /// <param name="emailAddress">Email address</param>
-        /// <param name="apiKey">CloudFlare API Key</param>
-        /// <param name="connectionInfo">Connection info</param>
-        public CloudFlareClient(string emailAddress, string apiKey, ConnectionInfo connectionInfo = null)
-            : this(new ApiKeyAuthentication(emailAddress, apiKey), connectionInfo)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CloudFlareClient"/> class
-        /// </summary>
-        /// <param name="apiToken">Authentication with api token</param>
-        /// <param name="connectionInfo">Connection info</param>
-        public CloudFlareClient(string apiToken, ConnectionInfo connectionInfo = null)
-            : this(new ApiTokenAuthentication(apiToken), connectionInfo)
-        {
         }
 
         /// <summary>
