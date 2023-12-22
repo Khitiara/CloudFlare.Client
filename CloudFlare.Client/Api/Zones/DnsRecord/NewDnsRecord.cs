@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using CloudFlare.Client.Api.Parameters.Data;
 using CloudFlare.Client.Enumerators;
 using CloudFlare.Client.Extensions;
@@ -23,6 +22,12 @@ namespace CloudFlare.Client.Api.Zones.DnsRecord
         /// </summary>
         [JsonProperty("content")]
         public string Content { get; set; }
+
+        /// <summary>
+        /// DNS record comment
+        /// </summary>
+        [JsonProperty("comment")]
+        public string Comment { get; set; }
 
         /// <summary>
         /// Used with some records like MX and SRV to determine priority.
@@ -58,6 +63,20 @@ namespace CloudFlare.Client.Api.Zones.DnsRecord
     public class NewDnsRecord<T> : NewDnsRecordBase
         where T : class, IData
     {
+        /// <summary>
+        /// Name of the record
+        /// <para>
+        /// The name of the record is not mandatory for every new
+        /// dns record that includes data.
+        /// </para>
+        /// <para>
+        /// So far, only TlsA record needs a name, and Srv does not
+        /// (srv's record name is in the data object).
+        /// </para>
+        /// </summary>
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
         /// <summary>
         /// Data of the record
         /// </summary>

@@ -58,7 +58,7 @@ namespace CloudFlare.Client.Test.Zones
         }
 
         [Fact]
-        public async Task TestCreateDataDnsRecordAsync()
+        public async Task TestCreateSrvDataDnsRecordAsync()
         {
             var zone = ZoneTestData.Zones.First();
             var newRecord = new NewDnsRecord<Srv>
@@ -81,7 +81,7 @@ namespace CloudFlare.Client.Test.Zones
             _wireMockServer
                 .Given(Request.Create().WithPath($"/{ZoneEndpoints.Base}/{zone.Id}/{DnsRecordEndpoints.Base}").UsingPost())
                 .RespondWith(Response.Create().WithStatusCode(200)
-                    .WithBody(x => 
+                    .WithBody(x =>
                     {
                         var dnsRecord = DnsRecordTestData.DnsRecords.First().DeepClone();
                         dnsRecord.Type = newRecord.Type;
@@ -103,7 +103,48 @@ namespace CloudFlare.Client.Test.Zones
             created.Result.Priority.Should().Be(newRecord.Data.Priority);
         }
 
-        
+        [Fact]
+        public async Task TestCreateTlsaDataDnsRecordAsync()
+        {
+            var zone = ZoneTestData.Zones.First();
+            var newRecord = new NewDnsRecord<TlsA>
+            {
+                Type = DnsRecordType.TlsA,
+                Data = new()
+                {
+                    Certificate = "G7xPqBbk8UqCrcm2D5QsDkym3zPQd6wyf3mZ4kU24DtWzfCSh945M6qcqHwseaBbmR",
+                    MatchingType = 0,
+                    Selector = 0,
+                    Usage = 1
+                },
+                Proxied = false,
+                Ttl = 12,
+            };
+
+            _wireMockServer
+                .Given(Request.Create().WithPath($"/{ZoneEndpoints.Base}/{zone.Id}/{DnsRecordEndpoints.Base}").UsingPost())
+                .RespondWith(Response.Create().WithStatusCode(200)
+                    .WithBody(x =>
+                    {
+                        var dnsRecord = DnsRecordTestData.DnsRecords.First().DeepClone();
+                        dnsRecord.Type = newRecord.Type;
+                        dnsRecord.Data = newRecord.Data;
+                        return WireMockResponseHelper.CreateTestResponse(dnsRecord);
+                    }));
+
+            using var client = new CloudFlareClient(WireMockConnection.ApiKeyAuthentication, _connectionInfo);
+
+            var created = await client.Zones.DnsRecords.AddAsync(zone.Id, newRecord);
+
+            created.Result.Should().BeEquivalentTo(DnsRecordTestData.DnsRecords.First(),
+                c => c.Excluding(p => p.Data)
+                      .Excluding(p => p.Type)
+                      .Excluding(p => p.Priority));
+
+            JsonConvert.DeserializeObject<TlsA>(created.Result.Data.ToString()).Should().BeEquivalentTo(newRecord.Data);
+            created.Result.Type.Should().Be(newRecord.Type);
+        }
+
         [Fact]
         public async Task TestExportDnsRecordsAsync()
         {
@@ -125,7 +166,7 @@ namespace CloudFlare.Client.Test.Zones
         public async Task TestGetDnsRecordsAsync()
         {
             var displayOptions = new DisplayOptions { Page = 1, PerPage = 20, Order = OrderType.Asc };
-            var dnsRecordFilter = new DnsRecordFilter { Content = "127.0.0.1", Match = false, Name = "tothnet.hu", Type = DnsRecordType.A };
+            var dnsRecordFilter = new DnsRecordFilter { Content = "127.0.0.1", Match = MatchType.All, Name = "tothnet.hu", Type = DnsRecordType.A };
 
             var zone = ZoneTestData.Zones.First();
 
@@ -228,16 +269,15 @@ namespace CloudFlare.Client.Test.Zones
 
             using var client = new CloudFlareClient(WireMockConnection.ApiKeyAuthentication, _connectionInfo);
 
-            var deleteCustomHostname = await client.Zones.DnsRecords.DeleteAsync(zone.Id, record.Id);
+            var delete = await client.Zones.DnsRecords.DeleteAsync(zone.Id, record.Id);
 
-            deleteCustomHostname.Result.Should().BeEquivalentTo(expected);
+            delete.Result.Should().BeEquivalentTo(expected);
         }
 
         [Fact]
         public async Task TestImportDnsRecordAsync()
         {
             var zone = ZoneTestData.Zones.First();
-            var record = DnsRecordTestData.DnsRecords.First();
             var file = FileHelper.CreateTempFile("test.txt");
 
             _wireMockServer
@@ -247,10 +287,10 @@ namespace CloudFlare.Client.Test.Zones
 
             using var client = new CloudFlareClient(WireMockConnection.ApiKeyAuthentication, _connectionInfo);
 
-            var deleteCustomHostname = await client.Zones.DnsRecords.ImportAsync(zone.Id, file, false);
+            var import = await client.Zones.DnsRecords.ImportAsync(zone.Id, file, false);
             file.Delete();
 
-            deleteCustomHostname.Result.Should().BeEquivalentTo(DnsRecordTestData.DnsRecordImports.First());
+            import.Result.Should().BeEquivalentTo(DnsRecordTestData.DnsRecordImports.First());
         }
     }
 }

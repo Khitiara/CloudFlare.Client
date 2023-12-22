@@ -5,27 +5,27 @@ using Newtonsoft.Json.Converters;
 namespace CloudFlare.Client.Enumerators
 {
     /// <summary>
-    /// Status of this membership
+    /// Represents the widget modes
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum Status
+    public enum WidgetMode
     {
         /// <summary>
-        /// Accepted
+        /// Non-Interactive Mode
         /// </summary>
-        [EnumMember(Value = "accepted")]
-        Accepted,
+        [EnumMember(Value = "non-interactive")]
+        NonInteractive,
 
         /// <summary>
-        /// Pending
+        /// Invisible Mode
         /// </summary>
-        [EnumMember(Value = "pending")]
-        Pending,
+        [EnumMember(Value = "invisible")]
+        Invisible,
 
         /// <summary>
-        /// Rejected
+        /// Managed Mode
         /// </summary>
-        [EnumMember(Value = "rejected")]
-        Rejected
+        [EnumMember(Value = "managed")]
+        Managed
     }
 }

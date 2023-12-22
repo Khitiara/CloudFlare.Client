@@ -25,6 +25,8 @@ namespace CloudFlare.Client.Client.Zones
             DnsRecords = new DnsRecords(connection);
             Filters = new Filters(connection);
             FirewallRules = new FirewallRules(connection);
+            Settings = new ZoneSettings(connection);
+            WorkerRoutes = new WorkerRoutes(connection);
         }
 
         /// <inheritdoc />
@@ -38,6 +40,12 @@ namespace CloudFlare.Client.Client.Zones
 
         /// <inheritdoc />
         public IFirewallRules FirewallRules { get; }
+
+        /// <inheritdoc />
+        public IZoneSettings Settings { get; }
+
+        /// <inheritdoc />
+        public IWorkerRoutes WorkerRoutes { get; }
 
         /// <inheritdoc />
         public async Task<CloudFlareResult<Zone>> AddAsync(NewZone newZone, CancellationToken cancellationToken = default)
